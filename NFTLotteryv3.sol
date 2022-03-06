@@ -504,7 +504,6 @@ contract NFTLottery is  IERC721Receiver, Ownable {
     bool winnerAnnounced;
     address winnerAddress;
     address[] stakers;
-    mapping (address => bool) existingUser;
     }
 
     mapping(uint => Lottery) public lotteryDetails;
@@ -513,25 +512,26 @@ contract NFTLottery is  IERC721Receiver, Ownable {
     uint256 salt = 100;
            
     // mappings
-    mapping (address => uint256) public userStaked; 
+    // mapping (address => uint256) public userStaked; 
     mapping (uint => bool) public nftIdUsed;
+    mapping (address => mapping(uint => bool)) public existingUser;
 
     event stake(uint indexed _lotteryid, address indexed from, uint256 indexed amount);
     event winner(uint indexed _lotteryid, address indexed _winner, uint256 indexed nftId);
 
-    constructor(IERC20 _stktoken, IERC721 _nfttkn, uint _stkamnt) public {
-        staketoken = _stktoken;
-        nftredeem = _nfttkn;
-        stakingamount = _stkamnt;
-    } 
+    // constructor(IERC20 _stktoken, IERC721 _nfttkn, uint _stkamnt) public {
+    //     staketoken = _stktoken;
+    //     nftredeem = _nfttkn;
+    //     stakingamount = _stkamnt;
+    // } 
     
     function stakeTokens(uint _lotteryid) external {
 
         Lottery storage lot = lotteryDetails[_lotteryid];
         
         require (lot.staking, "Staking not live");
-        require(!(lot.existingUser[msg.sender]), "Already Staked");
-        lot.existingUser[msg.sender] = true;
+        require(!(existingUser[msg.sender][_lotteryid]), "Already Staked");
+        existingUser[msg.sender][_lotteryid] = true;
         lot.stakers.push(msg.sender);
         staketoken.transferFrom(msg.sender, address(this), stakingamount); 
         emit stake(_lotteryid,msg.sender, stakingamount);    
@@ -628,9 +628,9 @@ contract NFTLottery is  IERC721Receiver, Ownable {
 
       require(!nftIdUsed[_nftId], "NFT ALREADY IN USED");  
         
-      Lottery memory newlottery = lotteryDetails[totallottery];
-      newlottery.nftId = _nftId;  
-      totallottery++;
+      totallottery++;  
+      Lottery storage newlottery = lotteryDetails[totallottery];
+      newlottery.nftId = _nftId;
     }
 
     function onERC721Received(address, address, uint, bytes calldata) external override returns (bytes4) {
